@@ -4,6 +4,7 @@
 module Main where
 
 import Diagrams.Prelude
+import Diagrams.Color.XKCD
 import Diagrams.Backend.Cairo
 import Diagrams.TwoD.Arc
 import Linear.V2
@@ -25,17 +26,18 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let src = mkStdGen seed
 
-  let arcs' = fmap (\(dir, sweep) -> arc (angleDir dir) sweep)
-                   . fmap (\(dir, sweep) -> (dir @@ deg, sweep @@deg))
-                   . catMaybes
-                   . flip evalState []
-                   . mapM nom
-                   . flip evalState (src, None 0.0)
-                   . mapM assignPoint
-                   $ [0, 0.5 .. 360]
+  let arcs' = fmap (lcA neonBlue)
+              . fmap (\(dir, sweep) -> arc (angleDir dir) sweep)
+              . fmap (\(dir, sweep) -> (dir @@ deg, sweep @@deg))
+              . catMaybes
+              . flip evalState []
+              . mapM nom
+              . flip evalState (src, None 0.0)
+              . mapM assignPoint
+              $ [0, 0.5 .. 360]
   let diagram = foldr atop mempty arcs'
 
-  renderCairo "./out.png" (dims $ V2 300 300) $ diagram # bgFrame 1 white
+  renderCairo "./out.png" (dims $ V2 300 300) $ diagram # bgFrame 1 (fromAlphaColour darkNavy)
 
 nom :: Brush Double -> State [Double] (Maybe (Double, Double))
 nom (None _) = do
@@ -58,8 +60,8 @@ assignPoint :: Double -> State (StdGen, (Brush Double)) (Brush Double)
 assignPoint d = do
   (src, prev) <- get
   let p = case prev of
-            (None _) -> 0.40::Double
-            (Arc _)  -> 0.88
+            (None _) -> 0.20::Double
+            (Arc _)  -> 0.90
   let (coin, src') = flip runState src $ runRVar (boolBernoulli p) StdRandom
   let brush = case coin of
                 True -> Arc d
