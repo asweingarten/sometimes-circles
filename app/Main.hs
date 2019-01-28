@@ -29,7 +29,10 @@ main = do
                    . fmap (\(dir, sweep) -> (dir @@ deg, sweep @@deg))
                    . catMaybes
                    . flip evalState []
-                   $ forM (brushStrokes src) nom
+                   . mapM nom
+                   . flip evalState (src, None 0.0)
+                   . mapM assignPoint
+                   $ [0, 0.5 .. 360]
   let diagram = foldr atop mempty arcs'
 
   renderCairo "./out.png" (dims $ V2 300 300) $ diagram # bgFrame 1 white
@@ -51,17 +54,18 @@ nom (Arc d) = do
   put $ workingArc ++ [d]
   return Nothing
 
-brushStrokes :: StdGen -> [Brush Double]
-brushStrokes src =
-  fmap (\(d, c) ->  if c then (Arc d) else (None d))
-  $ zip degrees coinFlips
-    where
-      degrees = [0, 0.5 .. 360]
-      (coinFlips, src') = (flip runState) src $ replicateM (length degrees) coinFlip
-
-coinFlip :: State StdGen Bool
-coinFlip =
-  runRVar (boolBernoulli (0.5::Double)) StdRandom
+assignPoint :: Double -> State (StdGen, (Brush Double)) (Brush Double)
+assignPoint d = do
+  (src, prev) <- get
+  let p = case prev of
+            (None _) -> 0.40::Double
+            (Arc _)  -> 0.88
+  let (coin, src') = flip runState src $ runRVar (boolBernoulli p) StdRandom
+  let brush = case coin of
+                True -> Arc d
+                False -> None d
+  put (src', brush)
+  return brush
 
 -- Get the points of a circle's perimeter
 -- at every point, flip a koin to decide if we connect the next point into an arc
