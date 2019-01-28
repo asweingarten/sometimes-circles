@@ -26,21 +26,37 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let src = mkStdGen seed
 
-  let arcs' = fmap (lcA neonBlue)
-              . fmap (\(dir, sweep) -> arc (angleDir dir) sweep)
-              . fmap (\(dir, sweep) -> (dir @@ deg, sweep @@deg))
-              . catMaybes
-              . flip evalState []
-              . mapM nom
-              . flip evalState (src, None 0.0)
-              . mapM assignPoint
-              $ [0, 0.5 .. 360]
-  let diagram = foldr atop mempty arcs'
+  let sometimesCircles = flip evalState src
+                         $ replicateM 50 sometimesCircle
+  let diagram = drift sometimesCircles
 
-  renderCairo "./out.png" (dims $ V2 300 300) $ diagram # bgFrame 1 (fromAlphaColour darkNavy)
+  renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkNavy)
 
-nom :: Brush Double -> State [Double] (Maybe (Double, Double))
-nom (None _) = do
+drift :: [Diagram B] -> Diagram B
+drift ds =
+  position $ zip (fmap mkPoint [0, 0.1 .. 5]) ds
+  where mkPoint x = p2 (x,-x)
+
+sometimesCircle :: State StdGen (Diagram B)
+sometimesCircle = do
+  src <- get
+  let (brushStrokes, (src', _)) = flip runState (src, None 0.0)
+                                  . mapM assignPoint
+                                  $ [0, 0.5 .. 360]
+  let d = foldr atop mempty
+          . fmap (lcA neonBlue)
+          . fmap (\(dir, sweep) -> arc (angleDir dir) sweep)
+          . fmap (\(dir, sweep) -> (dir @@ deg, sweep @@deg))
+          . catMaybes
+          . flip evalState []
+          . mapM arcs
+          $ brushStrokes
+  put src'
+  return d
+
+
+arcs :: Brush Double -> State [Double] (Maybe (Double, Double))
+arcs (None _) = do
   workingArc <- get
   put []
   if (length workingArc < 2)
@@ -51,7 +67,7 @@ nom (None _) = do
        let end = last workingArc
        let sweep = end - direction
        return $ Just (direction, sweep)
-nom (Arc d) = do
+arcs (Arc d) = do
   workingArc <- get
   put $ workingArc ++ [d]
   return Nothing
@@ -69,12 +85,3 @@ assignPoint d = do
   put (src', brush)
   return brush
 
--- Get the points of a circle's perimeter
--- at every point, flip a koin to decide if we connect the next point into an arc
--- when in connecting point state, then it's biased to stay that way and vice versa
---  (monad?)
--- do this multiple times with circles whose origins drift along a path (start with diagonal)
---
--- State s <thing I need that is obtained using s>
--- one function will be the mega computation
--- it will call other functions I had
