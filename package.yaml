@@ -1,0 +1,59 @@
+name:                sporadic-circles
+version:             0.1.0.0
+github:              "asweingarten/sporadic-circles"
+license:             BSD3
+author:              "Ariel Weingarten"
+maintainer:          "example@example.com"
+copyright:           "2019 Ariel Weingarten"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/asweingarten/sporadic-circles#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- diagrams
+- diagrams-lib
+- diagrams-contrib
+- diagrams-cairo
+- diagrams-core
+- linear
+- random-source
+- mtl
+- time
+- split
+- random-fu
+
+library:
+  source-dirs: src
+
+executables:
+  sporadic-circles-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sporadic-circles
+
+tests:
+  sporadic-circles-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - sporadic-circles
