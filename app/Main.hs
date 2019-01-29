@@ -1,5 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -26,16 +27,24 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let src = mkStdGen seed
 
-  let sometimesCircles = flip evalState src
+  let sometimesCircles = fmap (\(s, sc) -> scale s sc)
+                         . zip [0.1, 0.2 .. 5]
+                         . flip evalState src
                          $ replicateM 50 sometimesCircle
-  let diagram = drift sometimesCircles
+  let topLeft = drift sometimesCircles $ V2 1 (-1)
+  let topRight = drift sometimesCircles $ V2 (-1) (-1)
+  let botLeft = drift sometimesCircles $ V2 (1) (1)
+  let botRight = drift sometimesCircles $ V2 (-1) (1)
+  let diagram' = center $ (center (topLeft ||| topRight)) === (center (botLeft ||| botRight))
+  let diagram = (drift sometimesCircles (V2 0 0) # scale 4) `atop` diagram'
+
 
   renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkNavy)
 
-drift :: [Diagram B] -> Diagram B
-drift ds =
-  position $ zip (fmap mkPoint [0, 0.1 .. 5]) ds
-  where mkPoint x = p2 (x,-x)
+drift :: [Diagram B] -> V2 Double -> Diagram B
+drift ds (V2 dx dy)=
+  position $ zip (fmap mkPoint [0, 0.2 .. 5]) ds
+  where mkPoint x = p2 (x*dx,x*dy)
 
 sometimesCircle :: State StdGen (Diagram B)
 sometimesCircle = do
@@ -85,3 +94,8 @@ assignPoint d = do
   put (src', brush)
   return brush
 
+
+-- what about dashed circles controlled by a sinusoidal function?
+-- what could an interface for that look like?
+-- you have phase, frequency, and magnitude
+-- good purescript project
