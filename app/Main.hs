@@ -32,44 +32,40 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let src = mkStdGen seed
 
-  let lowers = [10::Double, 20 .. 50]
-  let uppers = [60::Double, 70 .. 100]
-  let bounds = (,) <$> lowers <*> uppers
-  let sometimesCircles = chunksOf 5
+  -- let lowers = [10::Double, 20 .. 50]
+  -- let uppers = [60::Double, 70 .. 100]
+  -- let bounds = (,) <$> lowers <*> uppers
+  -- current fave is l=10 and u=60
+  let l = 10
+  let u = 60
+  let sometimesCircles = drift (V2 1 (-1))
+                         . scale'
                          . fmap (lcA neonBlue)
                          . flip evalState src
-                         . sequence
-                         . fmap (\(l, u) -> sometimesCircle l u [])
-                         $ bounds
+                         . replicateM 25
+                         $ sometimesCircle l u []
 
-  let diagram = vsep 1
-                . fmap (hsep 1)
-                $ sometimesCircles
-
-  -- need a growBy
-  -- compose with drift somehow
-  -- maybe alternate colors
-  -- new model for generating arcs. current one has too many decisions
-  -- let diagram = (drift sometimesCircles (V2 0 0) # scale 4)
-  -- let diagram = sometimesCircles # lcA neonBlue
-
+  let diagram = sometimesCircles
 
   renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkNavy)
 
-drift :: [Diagram B] -> V2 Double -> Diagram B
-drift ds (V2 dx dy)=
-  position $ zip (fmap mkPoint [0, 0.2 .. 5]) ds
+scale' :: [Diagram B] -> [Diagram B]
+scale' ds = fmap (\(s,d) -> d # scale s)
+            $ zip [1 .. (fromIntegral $ (+1) $ length ds)] ds
+
+drift :: V2 Double -> [Diagram B] -> Diagram B
+drift (V2 dx dy) ds =
+  position $ zip points ds
   where mkPoint x = p2 (x*dx,x*dy)
+        points = fmap mkPoint
+                 . fmap (*0.1)
+                 $ [0 .. (fromIntegral $ length ds)]
 
 
 accum :: Brush Double -> Double -> Double
 accum (Arc d) acc  = d + acc
 accum (None d) acc = d + acc
 
--- have min and max sweep lengths for Arc and None
--- sample a length from those intervals
--- if it goes over 360 degrees, clip it
--- before, the beginning and end of the computation were driven by an fmap over a list.
 sometimesCircle :: Double -> Double -> [Brush (Double, Double)] -> State StdGen (Diagram B)
 sometimesCircle l u arcs = do
   let sweeps = fmap (fmap snd) arcs
