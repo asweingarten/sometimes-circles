@@ -32,11 +32,15 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let src = mkStdGen seed
 
+  let lowers = [10::Double, 20 .. 50]
+  let uppers = [60::Double, 70 .. 100]
+  let bounds = (,) <$> lowers <*> uppers
   let sometimesCircles = chunksOf 5
                          . fmap (lcA neonBlue)
                          . flip evalState src
-                         . replicateM 25
-                         $ sometimesCircle []
+                         . sequence
+                         . fmap (\(l, u) -> sometimesCircle l u [])
+                         $ bounds
 
   let diagram = vsep 1
                 . fmap (hsep 1)
@@ -66,8 +70,8 @@ accum (None d) acc = d + acc
 -- sample a length from those intervals
 -- if it goes over 360 degrees, clip it
 -- before, the beginning and end of the computation were driven by an fmap over a list.
-sometimesCircle :: [Brush (Double, Double)] -> State StdGen (Diagram B)
-sometimesCircle arcs = do
+sometimesCircle :: Double -> Double -> [Brush (Double, Double)] -> State StdGen (Diagram B)
+sometimesCircle l u arcs = do
   let sweeps = fmap (fmap snd) arcs
   let degreesCovered = (foldr accum 0 sweeps)
   if (degreesCovered >= 360)
@@ -75,20 +79,20 @@ sometimesCircle arcs = do
       return $ foldr atop mempty $ fmap toArc $ traceShowId arcs
     else do
       let remainingDegrees = (360-degreesCovered)
-      foo <- arcLength' 25 40
-      let foo' = case (foo > remainingDegrees) of
+      arcLen <- arcLength' l u
+      let clippedArcLen = case (arcLen > remainingDegrees) of
                 True -> remainingDegrees
-                False -> foo
+                False -> arcLen
       let flag = case (length arcs) of
                    0 -> True
                    _ -> case (last arcs) of
                           (Arc d) -> False
                           (None d) -> True
       let newArc = case (flag) of
-                      True -> Arc (degreesCovered, foo')
-                      False -> None (degreesCovered, foo')
+                      True -> Arc (degreesCovered, clippedArcLen)
+                      False -> None (degreesCovered, clippedArcLen)
       let newArcs = arcs ++ [newArc]
-      sometimesCircle newArcs
+      sometimesCircle l u newArcs
 
 toArc :: Brush (Double, Double) -> Diagram B
 toArc (None (d, s)) = mempty
