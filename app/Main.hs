@@ -15,6 +15,7 @@ import Debug.Trace
 
 import Data.Random
 import Data.Random.Distribution.Bernoulli
+import Data.Random.Distribution.Categorical
 import Data.Random.Source.StdGen
 import Data.Time.Clock.POSIX
 
@@ -38,33 +39,25 @@ main = do
   -- current fave is l=10 and u=60
   let l = 10
   let u = 60
-  let sometimesCircles = drift (V2 1 (-1))
-                         . scale'
-                         . fmap (lcA neonBlue)
+  let sometimesCircles = foldr atop mempty
                          . flip evalState src
-                         . replicateM 25
+                         . replicateM 45
                          $ sometimesCircle l u []
+
 
   let diagram = sometimesCircles
 
-  renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkNavy)
-
-scale' :: [Diagram B] -> [Diagram B]
-scale' ds = fmap (\(s,d) -> d # scale s)
-            $ zip [1 .. (fromIntegral $ (+1) $ length ds)] ds
-
-drift :: V2 Double -> [Diagram B] -> Diagram B
-drift (V2 dx dy) ds =
-  position $ zip points ds
-  where mkPoint x = p2 (x*dx,x*dy)
-        points = fmap mkPoint
-                 . fmap (*0.1)
-                 $ [0 .. (fromIntegral $ length ds)]
-
+  renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkGreyBlue)
 
 accum :: Brush Double -> Double -> Double
 accum (Arc d) acc  = d + acc
 accum (None d) acc = d + acc
+
+sampleUniformly :: Double -> Double -> State StdGen Double
+sampleUniformly l u = do
+  sample <- runRVar (uniform l u) StdRandom
+  return sample
+
 
 sometimesCircle :: Double -> Double -> [Brush (Double, Double)] -> State StdGen (Diagram B)
 sometimesCircle l u arcs = do
@@ -72,10 +65,25 @@ sometimesCircle l u arcs = do
   let degreesCovered = (foldr accum 0 sweeps)
   if (degreesCovered >= 360)
     then do
-      return $ foldr atop mempty $ fmap toArc $ traceShowId arcs
+      src <- get
+      scaleFactor <- sampleUniformly 0.1 10
+      originOffset <- sampleUniformly 0.1 1
+      color <- flip runRVar StdRandom $ weightedCategorical
+                [ (((1::Double)/3), seafoam)
+                , ((1/3), aquaBlue)
+                , ((1/3), offWhite)
+                ]
+
+      return $ lcA color
+             . translateY ((-2)*originOffset)
+             . translateX originOffset
+             . scale scaleFactor
+             . foldr atop mempty
+             . fmap toArc
+             $ arcs
     else do
       let remainingDegrees = (360-degreesCovered)
-      arcLen <- arcLength' l u
+      arcLen <- sampleUniformly l u
       let clippedArcLen = case (arcLen > remainingDegrees) of
                 True -> remainingDegrees
                 False -> arcLen
@@ -94,13 +102,7 @@ toArc :: Brush (Double, Double) -> Diagram B
 toArc (None (d, s)) = mempty
 toArc (Arc  (d, s)) = arc (angleDir $ d @@ deg) (s @@ deg)
 
-arcLength' :: Double -> Double -> State StdGen Double
-arcLength' l u = do
-  src <- get
-  let (length, src') = flip runState src
-                       $ runRVar (uniform l u) StdRandom
-  put src'
-  return length
+
 --
 -- what about dashed circles controlled by a sinusoidal function?
 -- what could an interface for that look like?
