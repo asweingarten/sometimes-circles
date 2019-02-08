@@ -33,16 +33,13 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let src = mkStdGen seed
 
-  -- let lowers = [10::Double, 20 .. 50]
-  -- let uppers = [60::Double, 70 .. 100]
-  -- let bounds = (,) <$> lowers <*> uppers
-  -- current fave is l=10 and u=60
-  let l = 10
-  let u = 60
-  let sometimesCircles = foldr atop mempty
+  let arcBounds          = (10,160)
+  let scaleBounds        = (0.1, 10)
+  let originOffsetBounds = (-0.1, 1)
+  let sometimesCircles   = foldr atop mempty
                          . flip evalState src
-                         . replicateM 45
-                         $ sometimesCircle l u []
+                         . replicateM 55
+                         $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
 
 
   let diagram = sometimesCircles
@@ -59,15 +56,15 @@ sampleUniformly l u = do
   return sample
 
 
-sometimesCircle :: Double -> Double -> [Brush (Double, Double)] -> State StdGen (Diagram B)
-sometimesCircle l u arcs = do
+sometimesCircle ::  (Double,Double) -> (Double,Double) -> (Double,Double) -> [Brush (Double, Double)] -> State StdGen (Diagram B)
+sometimesCircle (arcL, arcU) (scaleL, scaleU) (originL, originU) arcs = do
   let sweeps = fmap (fmap snd) arcs
   let degreesCovered = (foldr accum 0 sweeps)
   if (degreesCovered >= 360)
     then do
       src <- get
-      scaleFactor <- sampleUniformly 0.1 10
-      originOffset <- sampleUniformly 0.1 1
+      scaleFactor <- sampleUniformly scaleL scaleU -- 0.1 10
+      originOffset <- sampleUniformly originL originU -- 0.1 1
       color <- flip runRVar StdRandom $ weightedCategorical
                 [ (((1::Double)/3), seafoam)
                 , ((1/3), aquaBlue)
@@ -82,21 +79,21 @@ sometimesCircle l u arcs = do
              . fmap toArc
              $ arcs
     else do
-      let remainingDegrees = (360-degreesCovered)
-      arcLen <- sampleUniformly l u
+      let startingAngle = degreesCovered
+      let remainingDegrees = (360-startingAngle)
+      arcLen <- sampleUniformly arcL arcU
       let clippedArcLen = case (arcLen > remainingDegrees) of
-                True -> remainingDegrees
-                False -> arcLen
-      let flag = case (length arcs) of
-                   0 -> True
-                   _ -> case (last arcs) of
-                          (Arc d) -> False
-                          (None d) -> True
-      let newArc = case (flag) of
-                      True -> Arc (degreesCovered, clippedArcLen)
-                      False -> None (degreesCovered, clippedArcLen)
+                            True -> remainingDegrees
+                            False -> arcLen
+
+      let newArc = case (length arcs) of
+                     -- should really be a coin flip
+                     0 -> Arc (startingAngle, clippedArcLen)
+                     _ -> case (last arcs) of
+                            (Arc _)  -> None (startingAngle, clippedArcLen)
+                            (None _) -> Arc (startingAngle, clippedArcLen)
       let newArcs = arcs ++ [newArc]
-      sometimesCircle l u newArcs
+      sometimesCircle (arcL, arcU) (scaleL, scaleU) (originL, originU) newArcs
 
 toArc :: Brush (Double, Double) -> Diagram B
 toArc (None (d, s)) = mempty
