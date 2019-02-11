@@ -36,13 +36,14 @@ main = do
   let arcBounds          = (10,160)
   let scaleBounds        = (0.1, 10)
   let originOffsetBounds = (-0.1, 1)
-  let sometimesCircles   = foldr atop mempty
-                         . flip evalState src
-                         . replicateM 55
+  -- let sometimesCircles   = foldr atop mempty
+  --                        . flip evalState src
+  --                        . replicateM 55
+  --                        $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
+  let sometimesCircles = flip evalState src
                          $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
 
-
-  let diagram = sometimesCircles
+  let diagram = center sometimesCircles `atop` (unitCircle # scale 10 # lw none)
 
   renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkGreyBlue)
 
@@ -54,7 +55,6 @@ sampleUniformly :: Double -> Double -> State StdGen Double
 sampleUniformly l u = do
   sample <- runRVar (uniform l u) StdRandom
   return sample
-
 
 sometimesCircle ::  (Double,Double) -> (Double,Double) -> (Double,Double) -> [Brush (Double, Double)] -> State StdGen (Diagram B)
 sometimesCircle (arcL, arcU) (scaleL, scaleU) (originL, originU) arcs = do
@@ -86,9 +86,13 @@ sometimesCircle (arcL, arcU) (scaleL, scaleU) (originL, originU) arcs = do
                             True -> remainingDegrees
                             False -> arcLen
 
+
+      flip <- runRVar (boolBernoulli (0.5::Double)) StdRandom
       let newArc = case (length arcs) of
                      -- should really be a coin flip
-                     0 -> Arc (startingAngle, clippedArcLen)
+                     0 -> case (flip) of
+                            True -> Arc (startingAngle, clippedArcLen)
+                            False -> None (startingAngle, clippedArcLen)
                      _ -> case (last arcs) of
                             (Arc _)  -> None (startingAngle, clippedArcLen)
                             (None _) -> Arc (startingAngle, clippedArcLen)
