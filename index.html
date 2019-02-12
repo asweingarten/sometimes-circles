@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <link rel="stylesheet" href="sample.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<div id="content" class="">
+  <header class="col-lg-3 offset-lg-1">
+    <h1><a href="http://asweingarten.github.io/sometimes-circles">Sometimes-Circles</a></h1>
+  </header>
+  <article class="">
+    <h1 id="title" onclick="dgPick()">Making Sometimes-Circles</h1>
+    <img src="./img/art.png" alt="">
+    <p>In this post, I will explain the generative art techniques used to create Sometimes Circles. First, I will explain the math behind a single Sometimes Circle. Then I'll discuss stacking Sometimes Circles including size and position. </p>
+
+    <h2>Inspiration</h2>
+    <img src="./img/inspo.png"></img>
+    <p>
+      <em>Excerpt from "The Mother Ship"</em>
+      by <a href="https://www.reddit.com/user/MisterXi">MisterXi</a>
+      (<a href="https://github.com/astronomersiva/generative-art/blob/master/mothership/sketch.js">GitHub</a>)
+    </p>
+    <p>
+    I saw these circles in a piece on <a href="https://www.reddit.com/r/generative/">/r/generative</a> and thought I could bang it out in an evening. It took more than an evening.
+    </p>
+
+    <h2>One Sometimes-Circle</h2>
+    <div id="sc-gallery">
+      <div class="tile"><img src="./img/sc-1.png"></img></div>
+      <div class="tile"><img src="./img/sc-2.png"></img></div>
+      <div class="tile"><img src="./img/sc-3.png"></img></div>
+    </div>
+    <p>A sometimes-cirle is a list of arc lengths measured in degrees.
+       Each arc length is uniformly sampled from the range [10, 160].
+       Whether or not the first arc length is draw is decided by a fair coin flip (50/50 change) and then it alternates through the list.
+
+    The color is uniformly selected from a list of three colors.
+    </p>
+
+    <h2>
+      Stacking Sometimes-Circles
+    </h2>
+    <img src="./img/stacked.png" alt="">
+    <p>
+       Sometimes-circles differ in their scale and their origins.
+       Scales are uniformly samples between 1 and 10.
+       The origin is modeled as sampling a "drift" on the X and Y axes.
+       The drift along both axes are uniformly sampled between -0.1 and 0.5.
+    </p>
+
+    <h2>
+      Polka Dots
+    </h2>
+    <img src="img/polka-dots.png" alt="">
+    <p>
+       Slightly translucent polka dots are scattered across the image.
+       They are scaled between 0.1 and 0.5.
+       The origin is sampled in the same way as a sometimes-circle but with a different range.
+       Uniform sampling is not ideal here because it heavily prefers the region with the circles intead of the corners
+    </p>
+    <div id="design-gallery">
+    </div>
+  </article>
+  <footer class="col-lg-3 .offset-lg-2">
+    <p>This project is maintained by <a href="https://github.com/asweingarten">asweingarten</a></p>
+  </footer>
+</div>
+</body>
+</html>

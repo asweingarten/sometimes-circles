@@ -1,0 +1,66 @@
+body {
+  font-family: "Open Sans";
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #006A96;
+}
+
+a {
+  color: #00C6D7;
+}
+
+@media screen and (min-width: 960px) {
+  #content {
+    position: fixed;
+    left: 5vw;
+    display: grid;
+    grid-template-rows: 50vh 50vh;
+    grid-template-columns: 270px 1fr;
+
+    width: 90%;
+    margin: 0 auto;
+  }
+
+  header {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  footer {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: end;
+  }
+
+  article {
+    grid-column: 2;
+    grid-row-start: 1;
+    grid-row-end: 3;
+
+    overflow: scroll;
+
+    padding: 10px;
+  }
+}
+#sc-gallery {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+
+.tile {
+  height: 20vh;
+}
+
+.tile > img {
+  max-height: 100%;
+}
+
+/* Images*/
+img {
+  max-height: 33vh;
+  margin: 0 auto;
+  display: block;
+}
