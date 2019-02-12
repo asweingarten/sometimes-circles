@@ -35,15 +35,23 @@ main = do
 
   let arcBounds          = (10,160)
   let scaleBounds        = (0.1, 10)
-  let originOffsetBounds = (-0.1, 1)
-  -- let sometimesCircles   = foldr atop mempty
-  --                        . flip evalState src
-  --                        . replicateM 55
-  --                        $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
-  let sometimesCircles = flip evalState src
-                         $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
+  let originOffsetBounds = (-0.1, 0.5)
+  let (sometimesCircles, src')   = flip runState src
+                                   . replicateM 55
+                                   $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
+  let (polkaDots, src'') = flip runState src'
+                           . replicateM 5
+                           . fmap (opacity 0.9)
+                           $ polkaDot ((-21), 21) (0.1, 0.5)
 
-  let diagram = center sometimesCircles `atop` (unitCircle # scale 10 # lw none)
+  let polkaDots' = foldr atop mempty polkaDots
+  let art = polkaDots' `atop` center (foldr atop mempty sometimesCircles)
+
+  -- Single sometimes-circle
+  -- let sometimesCircles = flip evalState src
+                         -- $ sometimesCircle arcBounds scaleBounds originOffsetBounds []
+
+  let diagram = art `atop` (unitCircle # scale 11 # lw none)
 
   renderCairo "./out.png" (dims $ V2 400 400) $ diagram # bgFrame 1 (fromAlphaColour darkGreyBlue)
 
@@ -103,6 +111,19 @@ toArc :: Brush (Double, Double) -> Diagram B
 toArc (None (d, s)) = mempty
 toArc (Arc  (d, s)) = arc (angleDir $ d @@ deg) (s @@ deg)
 
+polkaDot :: (Double,Double) -> (Double,Double) -> State StdGen (Diagram B)
+polkaDot (originL, originU) (scaleL, scaleU) = do
+  driftX <- sampleUniformly originL originU
+  driftY <- sampleUniformly originL originU
+
+  scaleFactor  <- sampleUniformly scaleL scaleU
+
+  return $ unitCircle
+           # translateX driftX
+           # translateY driftY
+           # scale scaleFactor
+           # fcA golden
+           # lw none
 
 --
 -- what about dashed circles controlled by a sinusoidal function?
