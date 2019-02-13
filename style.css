@@ -42,15 +42,29 @@ a {
 
     padding: 10px;
   }
+
 }
+
+@media screen and (min-width: 430px) {
+#sc-gallery {
+    flex-flow: row nowrap;
+    justify-content: space-between;
+  }
+}
+
 #sc-gallery {
   display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
+  flex-flow: row wrap;
+  justify-content: space-around;
 }
 
+#sc-gallery {
+  img {
+  }
+}
 
 .tile {
+  margin: 5px;
   height: 20vh;
 }
 
